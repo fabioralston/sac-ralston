@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SAC Ralston - Login</title>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-logo">Ralston <span>SAC</span></div>
+    <div class="login-subtitle">Gestão de Atendimento ao Cliente</div>
+
+    <div id="formError" class="form-error"></div>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" required autocomplete="username" />
+      </div>
+      <div class="field">
+        <label for="password">Senha</label>
+        <input type="password" id="password" required autocomplete="current-password" />
+      </div>
+      <button type="submit" class="btn btn-block" id="loginBtn">Entrar</button>
+    </form>
+
+    <div class="divider">ou</div>
+
+    <button type="button" class="btn btn-google btn-block" id="googleBtn">
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+        <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.09-1.79 2.73v2.27h2.9c1.7-1.56 2.69-3.87 2.69-6.64z"/>
+        <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.27c-.81.54-1.85.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.34C2.46 15.98 5.48 18 9 18z"/>
+        <path fill="#FBBC05" d="M3.95 10.69A5.4 5.4 0 0 1 3.68 9c0-.59.1-1.16.27-1.69V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.34z"/>
+        <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.46 2.02.98 4.97l2.97 2.34C4.66 5.17 6.65 3.58 9 3.58z"/>
+      </svg>
+      Entrar com Google
+    </button>
+    <div class="login-hint">apenas contas @ralston.com.br</div>
+
+    <div class="login-footer">
+      Ainda não tem conta? <a href="#" id="showSignup">Criar acesso de atendente</a>
+    </div>
+
+    <form id="signupForm" style="display:none; margin-top:20px; text-align:left;">
+      <div class="field">
+        <label for="suNome">Nome</label>
+        <input type="text" id="suNome" required />
+      </div>
+      <div class="field">
+        <label for="suEmail">E-mail</label>
+        <input type="email" id="suEmail" required />
+      </div>
+      <div class="field">
+        <label for="suPassword">Senha (mín. 6 caracteres)</label>
+        <input type="password" id="suPassword" required minlength="6" />
+      </div>
+      <button type="submit" class="btn btn-block" id="signupBtn">Criar acesso</button>
+      <button type="button" class="btn btn-secondary btn-block" id="cancelSignup" style="margin-top:8px;">Voltar ao login</button>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/login.js"></script>
+</body>
+</html>
