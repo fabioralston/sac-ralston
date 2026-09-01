@@ -366,6 +366,75 @@ document.getElementById("formProduto").addEventListener("submit", async (e) => {
   renderProdutosTable();
 });
 
+document.getElementById("btnBaixarModelo").addEventListener("click", () => {
+  const ws = XLSX.utils.aoa_to_sheet([
+    ["Nome", "Código"],
+    ["Bananada 400g", "BAN400"],
+  ]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Produtos");
+  XLSX.writeFile(wb, "modelo-produtos.xlsx");
+});
+
+document.getElementById("btnImportarExcel").addEventListener("click", () => {
+  document.getElementById("inputExcel").click();
+});
+
+document.getElementById("inputExcel").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+
+  let rows;
+  try {
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer, { type: "array" });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+  } catch (err) {
+    alert("Não foi possível ler esse arquivo. Verifique se é um .xlsx, .xls ou .csv válido.");
+    return;
+  }
+
+  const normalize = (s) => (s || "").toString().trim().toLowerCase();
+  const NOME_KEYS = ["nome", "produto", "descrição", "descricao", "name"];
+  const CODIGO_KEYS = ["codigo", "código", "cod", "sku"];
+  const existentes = new Set(produtos.map((p) => normalize(p.nome)));
+
+  const novos = [];
+  const vistos = new Set();
+  for (const row of rows) {
+    const keys = Object.keys(row);
+    const nomeKey = keys.find((k) => NOME_KEYS.includes(normalize(k)));
+    const codigoKey = keys.find((k) => CODIGO_KEYS.includes(normalize(k)));
+    const nome = (nomeKey ? row[nomeKey] : "").toString().trim();
+    const codigo = (codigoKey ? row[codigoKey] : "").toString().trim();
+    if (!nome) continue;
+    const chave = normalize(nome);
+    if (existentes.has(chave) || vistos.has(chave)) continue;
+    vistos.add(chave);
+    novos.push({ nome, codigo: codigo || null, created_by: currentUser.id });
+  }
+
+  if (!novos.length) {
+    alert(
+      "Nenhum produto novo encontrado nesse arquivo. Confira se existe uma coluna \"Nome\" e se esses produtos já não estão cadastrados."
+    );
+    return;
+  }
+
+  if (!confirm(`Encontrados ${novos.length} produto(s) novo(s) no arquivo. Importar agora?`)) return;
+
+  const { error } = await supabaseClient.from("produtos").insert(novos);
+  if (error) {
+    alert("Erro ao importar: " + error.message);
+    return;
+  }
+  await loadReferenceData();
+  renderProdutosTable();
+  alert(`${novos.length} produto(s) importado(s) com sucesso.`);
+});
+
 // ---------- Modais genéricos ----------
 document.querySelectorAll("[data-close]").forEach((btn) => {
   btn.addEventListener("click", (e) => {
