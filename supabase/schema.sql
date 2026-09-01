@@ -23,6 +23,16 @@ create table if not exists clientes (
   created_by uuid references auth.users(id)
 );
 
+-- Produtos vinculados aos chamados
+create table if not exists produtos (
+  id uuid primary key default gen_random_uuid(),
+  nome text not null,
+  codigo text,
+  ativo boolean not null default true,
+  created_at timestamptz not null default now(),
+  created_by uuid references auth.users(id)
+);
+
 -- Categorias de chamado
 create table if not exists categorias (
   id uuid primary key default gen_random_uuid(),
@@ -44,6 +54,7 @@ create table if not exists chamados (
   numero bigint generated always as identity,
   cliente_id uuid references clientes(id),
   categoria_id uuid references categorias(id),
+  produto_id uuid references produtos(id),
   atendente_id uuid references auth.users(id),
   titulo text not null,
   descricao text,
@@ -56,6 +67,7 @@ create table if not exists chamados (
 
 create index if not exists idx_chamados_status on chamados(status);
 create index if not exists idx_chamados_cliente on chamados(cliente_id);
+create index if not exists idx_chamados_produto on chamados(produto_id);
 
 -- Histórico de interações de cada chamado
 create table if not exists interacoes (
@@ -105,6 +117,7 @@ create trigger trg_handle_new_user
 -- RLS: qualquer usuário autenticado (atendente da empresa) pode ler/escrever
 alter table profiles enable row level security;
 alter table clientes enable row level security;
+alter table produtos enable row level security;
 alter table categorias enable row level security;
 alter table chamados enable row level security;
 alter table interacoes enable row level security;
@@ -113,6 +126,7 @@ create policy "profiles_select_auth" on profiles for select to authenticated usi
 create policy "profiles_update_own" on profiles for update to authenticated using (id = auth.uid());
 
 create policy "clientes_all_auth" on clientes for all to authenticated using (true) with check (true);
+create policy "produtos_all_auth" on produtos for all to authenticated using (true) with check (true);
 create policy "categorias_all_auth" on categorias for all to authenticated using (true) with check (true);
 create policy "chamados_all_auth" on chamados for all to authenticated using (true) with check (true);
 create policy "interacoes_all_auth" on interacoes for all to authenticated using (true) with check (true);

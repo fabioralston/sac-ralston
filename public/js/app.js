@@ -16,9 +16,11 @@ const PRIORIDADE_META = {
 let currentUser = null;
 let clientes = [];
 let categorias = [];
+let produtos = [];
 let chamados = [];
 let statusChart = null;
 let categoriaChart = null;
+let produtoChart = null;
 
 function fmtDate(iso) {
   if (!iso) return "-";
@@ -39,24 +41,31 @@ async function requireSession() {
 }
 
 async function loadReferenceData() {
-  const [{ data: cli }, { data: cat }] = await Promise.all([
+  const [{ data: cli }, { data: cat }, { data: prod }] = await Promise.all([
     supabaseClient.from("clientes").select("*").order("nome"),
     supabaseClient.from("categorias").select("*").order("nome"),
+    supabaseClient.from("produtos").select("*").order("nome"),
   ]);
   clientes = cli || [];
   categorias = cat || [];
+  produtos = prod || [];
 
   const selCliente = document.getElementById("chamadoCliente");
   selCliente.innerHTML = clientes.map((c) => `<option value="${c.id}">${c.nome}</option>`).join("");
 
   const selCategoria = document.getElementById("chamadoCategoria");
   selCategoria.innerHTML = categorias.map((c) => `<option value="${c.id}">${c.nome}</option>`).join("");
+
+  const selProduto = document.getElementById("chamadoProduto");
+  selProduto.innerHTML =
+    `<option value="">Não especificado</option>` +
+    produtos.map((p) => `<option value="${p.id}">${p.nome}</option>`).join("");
 }
 
 async function loadChamados() {
   const { data, error } = await supabaseClient
     .from("chamados")
-    .select("*, clientes(id,nome), categorias(id,nome,cor)")
+    .select("*, clientes(id,nome), categorias(id,nome,cor), produtos(id,nome)")
     .order("created_at", { ascending: false });
   if (error) {
     console.error(error);
@@ -66,6 +75,7 @@ async function loadChamados() {
   renderDashboard();
   renderChamadosTable();
   renderClientesTable();
+  renderProdutosTable();
 }
 
 // ---------- Dashboard ----------
@@ -110,6 +120,30 @@ function renderDashboard() {
     data: { labels: catLabels, datasets: [{ data: catCounts, backgroundColor: catColors }] },
     options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
   });
+
+  const reclamacaoCat = categorias.find((c) => c.nome === "Reclamação");
+  const produtoData = produtos
+    .map((p) => ({
+      nome: p.nome,
+      total: chamados.filter((ch) => ch.produto_id === p.id && (!reclamacaoCat || ch.categoria_id === reclamacaoCat.id)).length,
+    }))
+    .filter((p) => p.total > 0)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10);
+
+  if (produtoChart) produtoChart.destroy();
+  produtoChart = new Chart(document.getElementById("chartProduto"), {
+    type: "bar",
+    data: {
+      labels: produtoData.map((p) => p.nome),
+      datasets: [{ data: produtoData.map((p) => p.total), backgroundColor: "#B23A2E" }],
+    },
+    options: {
+      indexAxis: "y",
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
+    },
+  });
 }
 
 // ---------- Chamados ----------
@@ -141,6 +175,7 @@ function renderChamadosTable() {
       <td>#${c.numero}</td>
       <td>${c.titulo}</td>
       <td>${c.clientes ? c.clientes.nome : "-"}</td>
+      <td>${c.produtos ? c.produtos.nome : "-"}</td>
       <td>${c.categorias ? c.categorias.nome : "-"}</td>
       <td>${badge(PRIORIDADE_META[c.prioridade])}</td>
       <td>${badge(STATUS_META[c.status])}</td>
@@ -168,6 +203,7 @@ async function openChamadoModal(id) {
     document.getElementById("chamadoId").value = c.id;
     document.getElementById("chamadoTitulo").value = c.titulo;
     document.getElementById("chamadoCliente").value = c.cliente_id || "";
+    document.getElementById("chamadoProduto").value = c.produto_id || "";
     document.getElementById("chamadoCategoria").value = c.categoria_id || "";
     document.getElementById("chamadoPrioridade").value = c.prioridade;
     document.getElementById("chamadoDescricao").value = c.descricao || "";
@@ -216,6 +252,7 @@ document.getElementById("formChamado").addEventListener("submit", async (e) => {
   const payload = {
     titulo: document.getElementById("chamadoTitulo").value.trim(),
     cliente_id: document.getElementById("chamadoCliente").value || null,
+    produto_id: document.getElementById("chamadoProduto").value || null,
     categoria_id: document.getElementById("chamadoCategoria").value || null,
     prioridade: document.getElementById("chamadoPrioridade").value,
     descricao: document.getElementById("chamadoDescricao").value.trim(),
@@ -282,6 +319,51 @@ document.getElementById("formCliente").addEventListener("submit", async (e) => {
   document.getElementById("modalCliente").classList.remove("visible");
   await loadReferenceData();
   renderClientesTable();
+});
+
+// ---------- Produtos ----------
+function filteredProdutos() {
+  const texto = document.getElementById("filtroProdutoTexto").value.trim().toLowerCase();
+  if (!texto) return produtos;
+  return produtos.filter((p) => `${p.nome} ${p.codigo || ""}`.toLowerCase().includes(texto));
+}
+
+function renderProdutosTable() {
+  const list = filteredProdutos();
+  const tbody = document.getElementById("produtosTableBody");
+  document.getElementById("produtosEmpty").style.display = list.length ? "none" : "block";
+
+  const reclamacaoCat = categorias.find((c) => c.nome === "Reclamação");
+
+  tbody.innerHTML = list
+    .map((p) => {
+      const qtd = chamados.filter((ch) => ch.produto_id === p.id).length;
+      const qtdReclamacoes = chamados.filter(
+        (ch) => ch.produto_id === p.id && (!reclamacaoCat || ch.categoria_id === reclamacaoCat.id)
+      ).length;
+      return `<tr><td>${p.nome}</td><td>${p.codigo || "-"}</td><td>${qtd}</td><td>${qtdReclamacoes}</td></tr>`;
+    })
+    .join("");
+}
+
+document.getElementById("filtroProdutoTexto").addEventListener("input", renderProdutosTable);
+
+document.getElementById("btnNovoProduto").addEventListener("click", () => {
+  document.getElementById("formProduto").reset();
+  document.getElementById("modalProduto").classList.add("visible");
+});
+
+document.getElementById("formProduto").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const payload = {
+    nome: document.getElementById("produtoNome").value.trim(),
+    codigo: document.getElementById("produtoCodigo").value.trim() || null,
+    created_by: currentUser.id,
+  };
+  await supabaseClient.from("produtos").insert(payload);
+  document.getElementById("modalProduto").classList.remove("visible");
+  await loadReferenceData();
+  renderProdutosTable();
 });
 
 // ---------- Modais genéricos ----------

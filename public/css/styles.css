@@ -247,10 +247,9 @@ a { color: var(--color-primary); }
 
 .charts-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 16px;
 }
-@media (max-width: 720px) { .charts-grid { grid-template-columns: 1fr; } }
 
 /* ---------- Table ---------- */
 table { width: 100%; border-collapse: collapse; font-size: 14px; }

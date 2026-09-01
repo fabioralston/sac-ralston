@@ -14,6 +14,7 @@
     <button data-view="dashboard" class="active">Dashboard</button>
     <button data-view="chamados">Chamados</button>
     <button data-view="clientes">Clientes</button>
+    <button data-view="produtos">Produtos</button>
   </nav>
   <div class="app-user">
     <span id="userLabel"></span>
@@ -35,6 +36,10 @@
       <div class="card">
         <h3 style="margin-top:0;">Chamados por categoria</h3>
         <canvas id="chartCategoria" height="220"></canvas>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;">Reclamações por produto</h3>
+        <canvas id="chartProduto" height="220"></canvas>
       </div>
     </div>
   </section>
@@ -66,7 +71,7 @@
       </div>
       <table>
         <thead>
-          <tr><th>#</th><th>Título</th><th>Cliente</th><th>Categoria</th><th>Prioridade</th><th>Status</th><th>Aberto em</th></tr>
+          <tr><th>#</th><th>Título</th><th>Cliente</th><th>Produto</th><th>Categoria</th><th>Prioridade</th><th>Status</th><th>Aberto em</th></tr>
         </thead>
         <tbody id="chamadosTableBody"></tbody>
       </table>
@@ -94,6 +99,26 @@
     </div>
   </section>
 
+  <!-- PRODUTOS -->
+  <section class="view" id="view-produtos">
+    <div class="view-header">
+      <h1>Produtos</h1>
+      <button class="btn" id="btnNovoProduto">+ Novo produto</button>
+    </div>
+    <div class="card">
+      <div class="toolbar">
+        <input type="text" id="filtroProdutoTexto" placeholder="Buscar por nome ou código..." style="min-width:260px;" />
+      </div>
+      <table>
+        <thead>
+          <tr><th>Nome</th><th>Código</th><th>Chamados</th><th>Reclamações</th></tr>
+        </thead>
+        <tbody id="produtosTableBody"></tbody>
+      </table>
+      <div id="produtosEmpty" class="empty-state" style="display:none;">Nenhum produto cadastrado.</div>
+    </div>
+  </section>
+
 </main>
 
 <!-- MODAL: Novo/Detalhe Chamado -->
@@ -110,6 +135,12 @@
       <div class="field">
         <label for="chamadoCliente">Cliente</label>
         <select id="chamadoCliente" required></select>
+      </div>
+      <div class="field">
+        <label for="chamadoProduto">Produto</label>
+        <select id="chamadoProduto">
+          <option value="">Não especificado</option>
+        </select>
       </div>
       <div class="field-row">
         <div class="field">
@@ -180,6 +211,25 @@
       <div class="field">
         <label for="clienteObs">Observações</label>
         <textarea id="clienteObs" rows="2"></textarea>
+      </div>
+      <button type="submit" class="btn btn-block">Salvar</button>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: Novo Produto -->
+<div class="modal-overlay" id="modalProduto">
+  <div class="modal">
+    <button class="modal-close" data-close>&times;</button>
+    <h2>Novo produto</h2>
+    <form id="formProduto">
+      <div class="field">
+        <label for="produtoNome">Nome</label>
+        <input type="text" id="produtoNome" required />
+      </div>
+      <div class="field">
+        <label for="produtoCodigo">Código (SKU) - opcional</label>
+        <input type="text" id="produtoCodigo" />
       </div>
       <button type="submit" class="btn btn-block">Salvar</button>
     </form>
