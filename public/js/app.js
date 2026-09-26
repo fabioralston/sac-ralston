@@ -237,11 +237,15 @@ document.getElementById("formInteracao").addEventListener("submit", async (e) =>
   const mensagem = input.value.trim();
   if (!mensagem || !chamadoId) return;
 
-  await supabaseClient.from("interacoes").insert({
+  const { error } = await supabaseClient.from("interacoes").insert({
     chamado_id: chamadoId,
     autor_id: currentUser.id,
     mensagem,
   });
+  if (error) {
+    alert("Erro ao adicionar interação: " + error.message);
+    return;
+  }
   input.value = "";
   await loadInteracoes(chamadoId);
 });
@@ -258,12 +262,17 @@ document.getElementById("formChamado").addEventListener("submit", async (e) => {
     descricao: document.getElementById("chamadoDescricao").value.trim(),
   };
 
+  let error;
   if (id) {
     payload.status = document.getElementById("chamadoStatus").value;
-    await supabaseClient.from("chamados").update(payload).eq("id", id);
+    ({ error } = await supabaseClient.from("chamados").update(payload).eq("id", id));
   } else {
     payload.atendente_id = currentUser.id;
-    await supabaseClient.from("chamados").insert(payload);
+    ({ error } = await supabaseClient.from("chamados").insert(payload));
+  }
+  if (error) {
+    alert("Erro ao salvar chamado: " + error.message);
+    return;
   }
 
   document.getElementById("modalChamado").classList.remove("visible");
@@ -315,7 +324,11 @@ document.getElementById("formCliente").addEventListener("submit", async (e) => {
     observacoes: document.getElementById("clienteObs").value.trim() || null,
     created_by: currentUser.id,
   };
-  await supabaseClient.from("clientes").insert(payload);
+  const { error } = await supabaseClient.from("clientes").insert(payload);
+  if (error) {
+    alert("Erro ao salvar cliente: " + error.message);
+    return;
+  }
   document.getElementById("modalCliente").classList.remove("visible");
   await loadReferenceData();
   renderClientesTable();
@@ -360,7 +373,11 @@ document.getElementById("formProduto").addEventListener("submit", async (e) => {
     codigo: document.getElementById("produtoCodigo").value.trim() || null,
     created_by: currentUser.id,
   };
-  await supabaseClient.from("produtos").insert(payload);
+  const { error } = await supabaseClient.from("produtos").insert(payload);
+  if (error) {
+    alert("Erro ao salvar produto: " + error.message);
+    return;
+  }
   document.getElementById("modalProduto").classList.remove("visible");
   await loadReferenceData();
   renderProdutosTable();
