@@ -53,7 +53,9 @@ async function loadReferenceData() {
   ]);
   clientes = cli || [];
   categorias = cat || [];
-  produtos = prod || [];
+  produtos = (prod || []).sort((a, b) =>
+    (a.codigo || a.nome).localeCompare(b.codigo || b.nome, "pt-BR", { numeric: true })
+  );
 
   const selCliente = document.getElementById("chamadoCliente");
   selCliente.innerHTML = clientes.map((c) => `<option value="${c.id}">${c.nome}</option>`).join("");
