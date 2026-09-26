@@ -33,7 +33,7 @@ function badge(meta) {
 
 function produtoLabel(p) {
   if (!p) return "-";
-  return p.codigo || p.nome;
+  return p.codigo ? `${p.codigo} - ${p.nome}` : p.nome;
 }
 
 async function requireSession() {
