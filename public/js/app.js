@@ -31,6 +31,11 @@ function badge(meta) {
   return `<span class="badge" style="background:${meta.color}">${meta.label}</span>`;
 }
 
+function produtoLabel(p) {
+  if (!p) return "-";
+  return p.codigo || p.nome;
+}
+
 async function requireSession() {
   const { data } = await supabaseClient.auth.getSession();
   if (!data.session) {
@@ -59,13 +64,13 @@ async function loadReferenceData() {
   const selProduto = document.getElementById("chamadoProduto");
   selProduto.innerHTML =
     `<option value="">Não especificado</option>` +
-    produtos.map((p) => `<option value="${p.id}">${p.nome}</option>`).join("");
+    produtos.map((p) => `<option value="${p.id}">${produtoLabel(p)}</option>`).join("");
 }
 
 async function loadChamados() {
   const { data, error } = await supabaseClient
     .from("chamados")
-    .select("*, clientes(id,nome), categorias(id,nome,cor), produtos(id,nome)")
+    .select("*, clientes(id,nome), categorias(id,nome,cor), produtos(id,nome,codigo)")
     .order("created_at", { ascending: false });
   if (error) {
     console.error(error);
@@ -124,7 +129,7 @@ function renderDashboard() {
   const reclamacaoCat = categorias.find((c) => c.nome === "Reclamação");
   const produtoData = produtos
     .map((p) => ({
-      nome: p.nome,
+      label: produtoLabel(p),
       total: chamados.filter((ch) => ch.produto_id === p.id && (!reclamacaoCat || ch.categoria_id === reclamacaoCat.id)).length,
     }))
     .filter((p) => p.total > 0)
@@ -135,7 +140,7 @@ function renderDashboard() {
   produtoChart = new Chart(document.getElementById("chartProduto"), {
     type: "bar",
     data: {
-      labels: produtoData.map((p) => p.nome),
+      labels: produtoData.map((p) => p.label),
       datasets: [{ data: produtoData.map((p) => p.total), backgroundColor: "#B23A2E" }],
     },
     options: {
@@ -175,7 +180,7 @@ function renderChamadosTable() {
       <td>#${c.numero}</td>
       <td>${c.titulo}</td>
       <td>${c.clientes ? c.clientes.nome : "-"}</td>
-      <td>${c.produtos ? c.produtos.nome : "-"}</td>
+      <td>${produtoLabel(c.produtos)}</td>
       <td>${c.categorias ? c.categorias.nome : "-"}</td>
       <td>${badge(PRIORIDADE_META[c.prioridade])}</td>
       <td>${badge(STATUS_META[c.status])}</td>
