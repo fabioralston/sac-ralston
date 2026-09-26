@@ -179,7 +179,15 @@
       <button type="submit" class="btn btn-block">Salvar</button>
     </form>
 
+    <div id="anexosSection" style="display:none;">
+      <h3 class="modal-section-title">Anexos</h3>
+      <div class="anexos-list" id="anexosList"></div>
+      <input type="file" id="inputAnexo" multiple style="display:none;" />
+      <button type="button" class="btn btn-secondary" id="btnAnexar" style="margin-top:10px;">+ Anexar arquivo</button>
+    </div>
+
     <div id="interacoesSection" style="display:none;">
+      <h3 class="modal-section-title">Interações</h3>
       <div class="interacoes-list" id="interacoesList"></div>
       <form id="formInteracao" style="margin-top:12px; display:flex; gap:8px;">
         <input type="text" id="interacaoMensagem" placeholder="Adicionar nota/atualização..." style="flex:1; padding:10px 12px; border:1px solid var(--color-border); border-radius:8px;" />

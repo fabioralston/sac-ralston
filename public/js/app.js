@@ -203,6 +203,7 @@ async function openChamadoModal(id) {
   document.getElementById("chamadoId").value = "";
   document.getElementById("fieldStatus").style.display = "none";
   document.getElementById("interacoesSection").style.display = "none";
+  document.getElementById("anexosSection").style.display = "none";
 
   if (id) {
     const c = chamados.find((x) => x.id === id);
@@ -217,7 +218,9 @@ async function openChamadoModal(id) {
     document.getElementById("chamadoStatus").value = c.status;
     document.getElementById("fieldStatus").style.display = "block";
     document.getElementById("interacoesSection").style.display = "block";
+    document.getElementById("anexosSection").style.display = "block";
     await loadInteracoes(id);
+    await loadAnexos(id);
   } else {
     document.getElementById("modalChamadoTitle").textContent = "Novo chamado";
   }
@@ -255,6 +258,120 @@ document.getElementById("formInteracao").addEventListener("submit", async (e) =>
   }
   input.value = "";
   await loadInteracoes(chamadoId);
+});
+
+// ---------- Anexos ----------
+const ANEXOS_BUCKET = "anexos";
+
+function fmtBytes(bytes) {
+  if (!bytes && bytes !== 0) return "";
+  const units = ["B", "KB", "MB", "GB"];
+  let value = bytes;
+  let i = 0;
+  while (value >= 1024 && i < units.length - 1) {
+    value /= 1024;
+    i++;
+  }
+  return `${value.toFixed(i > 0 && value < 10 ? 1 : 0)} ${units[i]}`;
+}
+
+function sanitizeExtensao(nomeArquivo) {
+  const idx = nomeArquivo.lastIndexOf(".");
+  if (idx < 0) return "";
+  return nomeArquivo
+    .slice(idx)
+    .toLowerCase()
+    .replace(/[^a-z0-9.]/g, "");
+}
+
+async function loadAnexos(chamadoId) {
+  const { data } = await supabaseClient
+    .from("chamado_anexos")
+    .select("*")
+    .eq("chamado_id", chamadoId)
+    .order("created_at", { ascending: true });
+
+  const list = document.getElementById("anexosList");
+  if (!data || !data.length) {
+    list.innerHTML = `<div class="empty-state">Nenhum anexo ainda.</div>`;
+    return;
+  }
+  list.innerHTML = data
+    .map(
+      (a) => `
+    <div class="anexo-item" data-id="${a.id}" data-path="${a.caminho}" data-nome="${a.nome_arquivo}">
+      <span class="anexo-nome">${a.nome_arquivo}</span>
+      <span class="anexo-tamanho">${fmtBytes(a.tamanho)}</span>
+      <button type="button" class="btn-link" data-action="baixar">Baixar</button>
+      <button type="button" class="btn-link-danger" data-action="excluir">Excluir</button>
+    </div>`
+    )
+    .join("");
+
+  list.querySelectorAll(".anexo-item").forEach((el) => {
+    const { id, path, nome } = el.dataset;
+    el.querySelector('[data-action="baixar"]').addEventListener("click", () => baixarAnexo(path, nome));
+    el.querySelector('[data-action="excluir"]').addEventListener("click", () => excluirAnexo(id, path));
+  });
+}
+
+async function baixarAnexo(caminho, nomeOriginal) {
+  const { data, error } = await supabaseClient.storage.from(ANEXOS_BUCKET).createSignedUrl(caminho, 60);
+  if (error) {
+    alert("Erro ao gerar link do arquivo: " + error.message);
+    return;
+  }
+  const resp = await fetch(data.signedUrl);
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nomeOriginal;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function excluirAnexo(id, caminho) {
+  if (!confirm("Excluir este anexo?")) return;
+  await supabaseClient.storage.from(ANEXOS_BUCKET).remove([caminho]);
+  const { error } = await supabaseClient.from("chamado_anexos").delete().eq("id", id);
+  if (error) {
+    alert("Erro ao excluir anexo: " + error.message);
+    return;
+  }
+  await loadAnexos(document.getElementById("chamadoId").value);
+}
+
+document.getElementById("btnAnexar").addEventListener("click", () => {
+  document.getElementById("inputAnexo").click();
+});
+
+document.getElementById("inputAnexo").addEventListener("change", async (e) => {
+  const files = Array.from(e.target.files);
+  e.target.value = "";
+  const chamadoId = document.getElementById("chamadoId").value;
+  if (!files.length || !chamadoId) return;
+
+  for (const file of files) {
+    const caminho = `${chamadoId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}${sanitizeExtensao(file.name)}`;
+    const { error: upErr } = await supabaseClient.storage.from(ANEXOS_BUCKET).upload(caminho, file);
+    if (upErr) {
+      alert(`Erro ao enviar "${file.name}": ` + upErr.message);
+      continue;
+    }
+    const { error: dbErr } = await supabaseClient.from("chamado_anexos").insert({
+      chamado_id: chamadoId,
+      nome_arquivo: file.name,
+      caminho,
+      tamanho: file.size,
+      tipo: file.type,
+      uploaded_by: currentUser.id,
+    });
+    if (dbErr) alert(`Erro ao registrar "${file.name}": ` + dbErr.message);
+  }
+  await loadAnexos(chamadoId);
 });
 
 document.getElementById("formChamado").addEventListener("submit", async (e) => {
