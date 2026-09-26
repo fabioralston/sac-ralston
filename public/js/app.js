@@ -354,9 +354,25 @@ function renderProdutosTable() {
       const qtdReclamacoes = chamados.filter(
         (ch) => ch.produto_id === p.id && (!reclamacaoCat || ch.categoria_id === reclamacaoCat.id)
       ).length;
-      return `<tr><td>${p.nome}</td><td>${p.codigo || "-"}</td><td>${qtd}</td><td>${qtdReclamacoes}</td></tr>`;
+      return `<tr><td>${p.nome}</td><td>${p.codigo || "-"}</td><td>${qtd}</td><td>${qtdReclamacoes}</td><td><button type="button" class="btn-link-danger" data-id="${p.id}" data-nome="${p.nome}">Excluir</button></td></tr>`;
     })
     .join("");
+
+  tbody.querySelectorAll(".btn-link-danger").forEach((btn) => {
+    btn.addEventListener("click", () => excluirProduto(btn.dataset.id, btn.dataset.nome));
+  });
+}
+
+async function excluirProduto(id, nome) {
+  if (!confirm(`Excluir o produto "${nome}"? Chamados já registrados com esse produto continuam no histórico, apenas sem o vínculo.`)) return;
+
+  const { error } = await supabaseClient.from("produtos").delete().eq("id", id);
+  if (error) {
+    alert("Erro ao excluir produto: " + error.message);
+    return;
+  }
+  await loadReferenceData();
+  await loadChamados();
 }
 
 document.getElementById("filtroProdutoTexto").addEventListener("input", renderProdutosTable);

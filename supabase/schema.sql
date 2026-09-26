@@ -54,7 +54,7 @@ create table if not exists chamados (
   numero bigint generated always as identity,
   cliente_id uuid references clientes(id),
   categoria_id uuid references categorias(id),
-  produto_id uuid references produtos(id),
+  produto_id uuid references produtos(id) on delete set null,
   atendente_id uuid references auth.users(id),
   titulo text not null,
   descricao text,
